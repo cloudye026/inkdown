@@ -215,7 +215,8 @@ npm run rust:test    # 15 个后端用例
 合计 **333 个自动化用例**（318 前端 + 15 后端），另有 6 个在真实应用里跑的
 CDP 验证脚本（见[开发文档](docs/DEVELOPMENT.md#验证方式)）。
 
-环境要求：Node 20+、Rust 1.88+（`rustup update stable`）、Windows 需 WebView2（Win10/11 自带）。
+环境要求：**Node 22.12+**（或 20.19+ —— Vite 8 的下限）、Rust 1.88+（`rustup update stable`）、
+Windows 需 WebView2（Win10/11 自带）。
 
 命令行直接打开文件或目录：
 
