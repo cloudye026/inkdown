@@ -1,0 +1,28 @@
+/* 预览区独立样式文件：既被应用加载，也被导出 HTML 内联 */
+
+.markdown-body {
+  font-size: var(--preview-size, 16px);
+  line-height: var(--preview-line-height, 1.85);
+  font-family: var(--preview-font, system-ui, sans-serif);
+  color: var(--fg, #23262b);
+}
+.markdown-body > *:first-child {
+  margin-top: 0;
+}
+.markdown-body .mermaid-block {
+  display: flex;
+  justify-content: center;
+  margin: 1em 0;
+  overflow-x: auto;
+}
+.markdown-body .mermaid-block svg {
+  max-width: 100%;
+  height: auto;
+}
+.markdown-body .mermaid-error {
+  /* 原来写死了亮色主题的红，在深色主题上太暗看不清 */
+  color: var(--danger);
+  font-family: monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+}

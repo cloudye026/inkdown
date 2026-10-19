@@ -1,0 +1,21 @@
+# 行尾统一成 LF。
+#
+# 为什么要显式写：Windows 上 git 默认 autocrlf，同一份源码在不同机器上检出后
+# 行尾不一致，跨平台的 CI 与格式化工具会报一堆无关紧要的 diff。
+# 这里明确「仓库里一律 LF」，检出时也保持 LF（用支持 LF 的编辑器即可）。
+* text=auto eol=lf
+
+# 这些格式是二进制的，不要做行尾转换与文本 diff
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.icns binary
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.woff binary
+*.woff2 binary

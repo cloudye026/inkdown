@@ -1,0 +1,178 @@
+name: Release
+
+# 三平台安装包 → GitHub Release。
+#
+# 为什么必须用 CI：
+#   Tauri **不支持交叉编译**。macOS 的 .app/.dmg 要在 macOS 上打（Xcode 命令行工具 +
+#   macOS SDK），Linux 的 .AppImage/.deb/.rpm 要在 Linux 上打（需要 webkit2gtk 等系统库）。
+#   在 Windows 上产不出这两个平台的可用包 —— 这是平台限制，不是配置问题。
+#
+# 触发方式：
+#   - 推一个 `v*` 标签 → 构建 + 发布到 Release
+#   - 手动 workflow_dispatch → 只构建，产物挂在 Actions 的 Artifacts 里（不发布）
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+# 同一分支/标签同时只跑一个发布，避免两个任务抢着建同一个 Release
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+# 创建/更新 Release 需要写权限；不写这一条 GITHUB_TOKEN 只能读
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # 标签和 package.json 的版本必须一致，否则 Release 标题、安装包文件名、
+  # 应用内显示的版本会三处不一致（以前就出现过状态栏写着 0.1.0、实际 0.3.0 的事）。
+  guard:
+    name: 校验版本号
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: 标签必须等于 package.json 的 version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          ver="$(node -p "require('./package.json').version")"
+          echo "标签: $tag    版本: $ver"
+          if [ "$tag" != "$ver" ]; then
+            echo "::error::标签 $GITHUB_REF_NAME 与 package.json 的版本 $ver 不一致。请先改版本号再打标签。"
+            exit 1
+          fi
+
+  build:
+    name: ${{ matrix.label }}
+    needs: guard
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            label: windows-x64
+            args: ""
+          # Apple Silicon 与 Intel 各出一份：Tauri 的 macOS 产物带架构后缀，
+          # 用户按自己的机器选，不用管 Rosetta。
+          - os: macos-latest
+            label: macos-arm64
+            args: "--target aarch64-apple-darwin"
+          - os: macos-latest
+            label: macos-x64
+            args: "--target x86_64-apple-darwin"
+          # 用 22.04 而不是 ubuntu-latest：AppImage 里的 glibc 符号要向旧的看齐，
+          # 在 24.04 上打出来的包在旧发行版上会报 GLIBC_2.39 not found。
+          - os: ubuntu-22.04
+            label: linux-x64
+            args: ""
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 安装 Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          # macOS 两个目标都要装：哪怕只打其中一个，tauri 也可能按需查另一个
+          targets: ${{ startsWith(matrix.os, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: 缓存 Rust 产物
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: 安装 Linux 系统依赖
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libjavascriptcoregtk-4.1-dev \
+            libsoup-3.0-dev \
+            libgtk-3-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            rpm
+
+      - name: 安装前端依赖
+        run: npm ci
+
+      - name: 类型检查 + 前端测试
+        run: |
+          npm run typecheck
+          npm test
+
+      - name: 后端测试
+        run: npm run rust:test
+
+      - name: 打包
+        run: npx tauri build ${{ matrix.args }}
+
+      - name: 收集安装包
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundles-${{ matrix.label }}
+          if-no-files-found: error
+          # 各平台只产出自己那几种；用通配，缺的不会报错
+          path: |
+            src-tauri/target/**/release/bundle/nsis/*.exe
+            src-tauri/target/**/release/bundle/msi/*.msi
+            src-tauri/target/**/release/bundle/dmg/*.dmg
+            src-tauri/target/**/release/bundle/deb/*.deb
+            src-tauri/target/**/release/bundle/rpm/*.rpm
+            src-tauri/target/**/release/bundle/appimage/*.AppImage
+
+  # 单独一个 job 统一发布：三个平台的产物都在手上了才发，
+  # 避免矩阵里几个 job 同时去建同一个 Release（会撞车）。
+  release:
+    name: 发布到 Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 下载全部安装包
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          # 合并到同一层目录，Release 里就是一组平铺的文件
+          merge-multiple: true
+
+      - name: 看看收到了什么
+        run: |
+          echo "共 $(find artifacts -type f | wc -l) 个文件："
+          find artifacts -type f -printf '%10s  %p\n' | sort -k2
+
+      - name: 发布
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Inkdown ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          # 版本日志从 CHANGELOG 里摘；也可改成 body_path: CHANGELOG.md
+          generate_release_notes: true
+          # 首次发布想先自己看一眼，把这里改成 true，之后在网页上点「Publish」
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/*.msi
+            artifacts/**/*.dmg
+            artifacts/**/*.deb
+            artifacts/**/*.rpm
+            artifacts/**/*.AppImage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

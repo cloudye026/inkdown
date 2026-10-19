@@ -1,0 +1,51 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# 构建产物：src-tauri/target 有 9 GB，不忽略会把仓库撑爆
+src-tauri/target
+src-tauri/gen/schemas
+
+# 打出来的安装包（由 CI 生成，不进仓库）
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+*.msi
+*.nsis.zip
+
+# 验证脚本留下的截图与临时产物
+/ui-*.png
+/icon-preview-*.png
+/icon-variants.png
+/verify-*.png
+/theme-*.png
+/app-*.png
+/code-*.png
+/outline-*.png
+/extracted-icon.png
+
+# Tauri / WebView2 本地数据
+.tauri
+*.pdb
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

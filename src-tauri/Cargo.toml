@@ -1,0 +1,49 @@
+[package]
+name = "inkdown"
+version = "0.3.0"
+description = "Inkdown —— Markdown reader & editor"
+authors = ["inkdown"]
+edition = "2021"
+rust-version = "1.88"
+
+[lib]
+# The `_lib` suffix avoids a bin/lib name clash on Windows.
+# https://github.com/rust-lang/cargo/issues/8519
+name = "inkdown_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+# 不加这一段的话，二进制名会继承包名，产出的小写 `inkdown.exe`；
+# 安装后在任务管理器 / 固定到任务栏 / 开始菜单里显示的就是这个文件名。
+# 显式指定成 `Inkdown` 才与产品名一致。
+name = "Inkdown"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-store = "2"
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# file IO / encoding / watching
+walkdir = "2"
+chardetng = "0.1"
+encoding_rs = "0.8"
+# 删除走系统回收站（tauri-plugin-fs 只提供永久删除）
+trash = "5"
+
+# Read the optimization guideline for more details:
+# https://tauri.app/concept/size/#cargo-configuration
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
