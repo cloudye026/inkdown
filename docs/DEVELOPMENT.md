@@ -72,11 +72,15 @@ git push origin v0.3.1
 | 阶段 | 做什么 |
 | --- | --- |
 | `guard` | 校验标签 `v0.3.1` 与 `package.json` 的 version 一致，不一致直接失败 |
-| `build` ×4 | 在 **windows-latest / macos-latest(arm64+x64) / ubuntu-22.04** 上各自原生构建，先跑类型检查与 312+15 个测试，任一失败就不出包 |
-| `release` | 汇总四个任务的全部安装包，创建 Release 并挂上资产 |
+| `build` ×4 | 在 **windows-latest / macos-latest(arm64+x64) / ubuntu-22.04** 上各自原生构建，先跑类型检查与 318+15 个测试，任一失败就不出包 |
+| `release` | 汇总四个任务的全部安装包，用 `scripts/release-notes.mjs` 从 CHANGELOG 摘出本版本说明作为正文，创建 Release 并挂上资产 |
 
 产物清单：`*-setup.exe`、`*.msi`、`*_aarch64.dmg`、`*_x64.dmg`、
 `*.AppImage`、`*.deb`、`*.rpm`。
+
+**发布说明为什么不用 GitHub 自动生成**：那只是把 commit 标题堆起来，对使用者没有信息量。
+CHANGELOG 里已经认真写过"改了什么、修了什么"，所以改成从里面摘对应版本那一段
+（`scripts/release-notes.mjs`，6 个用例覆盖版本号格式、段落边界、找不到时的兜底）。
 
 **手动触发**（`workflow_dispatch`）只构建、不发布 —— 产物留在 Actions 的 Artifacts 里，
 适合发版前先验证某个平台能不能过。

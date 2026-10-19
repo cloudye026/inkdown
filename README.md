@@ -18,7 +18,7 @@
   <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-1.88%2B-E43717" alt="Rust" /></a>
   <a href="../../releases"><img src="https://img.shields.io/badge/download-Releases-2ea44f" alt="Downloads" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-3fb950" alt="License" /></a>
-  <a href="docs/DEVELOPMENT.md"><img src="https://img.shields.io/badge/tests-327%20passing-3fb950" alt="Tests" /></a>
+  <a href="docs/DEVELOPMENT.md"><img src="https://img.shields.io/badge/tests-333%20passing-3fb950" alt="Tests" /></a>
 </p>
 
 <p align="center">
@@ -208,11 +208,11 @@ CSS 变量在 `src/styles/index.css`。**两边的色值由测试强制保持一
 npm install
 npm run app          # = tauri dev，启动桌面窗口
 npm run app:build    # = tauri build，打安装包
-npm test             # 312 个前端用例
+npm test             # 318 个前端用例
 npm run rust:test    # 15 个后端用例
 ```
 
-合计 **327 个自动化用例**（312 前端 + 15 后端），另有 6 个在真实应用里跑的
+合计 **333 个自动化用例**（318 前端 + 15 后端），另有 6 个在真实应用里跑的
 CDP 验证脚本（见[开发文档](docs/DEVELOPMENT.md#验证方式)）。
 
 环境要求：Node 20+、Rust 1.88+（`rustup update stable`）、Windows 需 WebView2（Win10/11 自带）。
