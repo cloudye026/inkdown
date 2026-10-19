@@ -72,11 +72,19 @@ git push origin v0.3.1
 | 阶段 | 做什么 |
 | --- | --- |
 | `guard` | 校验标签 `v0.3.1` 与 `package.json` 的 version 一致，不一致直接失败 |
-| `build` ×4 | 在 **windows-latest / macos-latest(arm64+x64) / ubuntu-22.04** 上各自原生构建，先跑类型检查与 318+15 个测试，任一失败就不出包 |
-| `release` | 汇总四个任务的全部安装包，用 `scripts/release-notes.mjs` 从 CHANGELOG 摘出本版本说明作为正文，创建 Release 并挂上资产 |
+| `build` | 在矩阵里的平台上各自原生构建，先跑类型检查与 318+15 个测试，任一失败就不出包 |
+| `release` | 汇总全部安装包，生成 `SHA256SUMS.txt`，用 `scripts/release-notes.mjs` 从 CHANGELOG 摘出本版本说明作为正文，创建 Release 并挂上资产 |
+
+**当前矩阵只启用 Windows 一路**（`windows-latest`）。macOS 的 arm64/x64 与 Linux 条目
+以注释形式留在 `release.yml` 里，解开注释即可一起出 —— 首个版本先只发 Windows，
+是因为这一路是唯一在本机反复验证过的，不会在发布时踩平台特有的打包问题。
 
 产物清单：`*-setup.exe`、`*.msi`、`*_aarch64.dmg`、`*_x64.dmg`、
-`*.AppImage`、`*.deb`、`*.rpm`。
+`*.AppImage`、`*.deb`、`*.rpm`、`SHA256SUMS.txt`。
+
+**为什么发布未签名的包还要给校验和**：用户没法靠"发布者身份"判断文件有没有被改过
+（这正是签名的用途）。给一份 SHA256 至少能确认下载链路没动手脚，
+`certutil -hashfile <文件> SHA256`（Windows）或 `shasum -a 256 <文件>`（macOS）即可核对。
 
 **发布说明为什么不用 GitHub 自动生成**：那只是把 commit 标题堆起来，对使用者没有信息量。
 CHANGELOG 里已经认真写过"改了什么、修了什么"，所以改成从里面摘对应版本那一段

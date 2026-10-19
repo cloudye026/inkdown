@@ -55,22 +55,30 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # ── 当前只发 Windows ──────────────────────────────────────────────
+          # 首个版本先只出 Windows：这一路是唯一在本机反复验证过的，
+          # 发布出去不会踩到平台特有的打包问题。macOS / Linux 的条目留在下面，
+          # 把注释放开就能一起出（那时 Release 会同时挂上七种安装包）。
           - os: windows-latest
             label: windows-x64
             args: ""
+
+          # ── 待启用：macOS（Apple Silicon + Intel）─────────────────────────
           # Apple Silicon 与 Intel 各出一份：Tauri 的 macOS 产物带架构后缀，
           # 用户按自己的机器选，不用管 Rosetta。
-          - os: macos-latest
-            label: macos-arm64
-            args: "--target aarch64-apple-darwin"
-          - os: macos-latest
-            label: macos-x64
-            args: "--target x86_64-apple-darwin"
+          # - os: macos-latest
+          #   label: macos-arm64
+          #   args: "--target aarch64-apple-darwin"
+          # - os: macos-latest
+          #   label: macos-x64
+          #   args: "--target x86_64-apple-darwin"
+
+          # ── 待启用：Linux ────────────────────────────────────────────────
           # 用 22.04 而不是 ubuntu-latest：AppImage 里的 glibc 符号要向旧的看齐，
           # 在 24.04 上打出来的包在旧发行版上会报 GLIBC_2.39 not found。
-          - os: ubuntu-22.04
-            label: linux-x64
-            args: ""
+          # - os: ubuntu-22.04
+          #   label: linux-x64
+          #   args: ""
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
 
@@ -167,6 +175,17 @@ jobs:
           echo "---- notes.md ----"
           head -15 notes.md
 
+      # 未签名的安装包，用户没法靠"发布者"判断完整性 —— 给一份校验和，
+      # 至少能确认下载没被中间环节改过。
+      - name: 生成校验和
+        run: |
+          cd artifacts
+          # 先写到临时文件再移回来：直接 `sha256sum * > SHA256SUMS.txt`
+          # 会让 * 把刚创建的空文件也囊括进去（经典踩坑）
+          sha256sum * > /tmp/sums.txt
+          mv /tmp/sums.txt SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
       - name: 发布
         uses: softprops/action-gh-release@v2
         with:
@@ -183,5 +202,6 @@ jobs:
             artifacts/**/*.deb
             artifacts/**/*.rpm
             artifacts/**/*.AppImage
+            artifacts/SHA256SUMS.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

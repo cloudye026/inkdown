@@ -24,6 +24,9 @@ src-tauri/gen/schemas
 *.msi
 *.nsis.zip
 
+# 手动发布用的整理目录（构建产物）
+dist-release
+
 # 验证脚本留下的截图与临时产物
 /ui-*.png
 /icon-preview-*.png

@@ -168,9 +168,9 @@ CSS 变量在 `src/styles/index.css`。**两边的色值由测试强制保持一
 | 方面 | 状态 |
 | --- | --- |
 | 写作 / 阅读 / 文件管理 | ✅ 可用。这条主线上的功能都跑通了，并逐项验证过（见 [验证方式](docs/DEVELOPMENT.md#验证方式)） |
-| Windows 分发 | ⚠️ 可安装，但**未签名** —— 首次安装会弹 SmartScreen，需点「更多信息 → 仍要运行」 |
-| macOS 分发 | ⚠️ 安装包由 CI 在 macOS 上构建；**未签名、未公证**，首次打开需右键 →「打开」或 `xattr` 去隔离 |
-| Linux 分发 | ⚠️ 出 AppImage / deb / rpm；**未在多种发行版上验证过**，glibc 要求见下文 |
+| Windows 分发 | ✅ 出包并本机验证过；⚠️ **未签名** —— 首次安装会弹 SmartScreen，需点「更多信息 → 仍要运行」 |
+| macOS 分发 | ⏳ 构建条目已在 CI 里备好但**暂未启用**；启用后出的包同样未签名、未公证 |
+| Linux 分发 | ⏳ 同上（AppImage / deb / rpm） |
 | 全库搜索 · Git 集成 · PDF/DOCX 导出 · 大文件虚拟化 · 单实例转发 | ❌ 未实现，见 [路线图](docs/DEVELOPMENT.md#路线图) |
 
 所以它现在是一匹**能干活的马**，不是一件可以上架卖的商品：功能主线齐了，
@@ -178,25 +178,29 @@ CSS 变量在 `src/styles/index.css`。**两边的色值由测试强制保持一
 
 ## 下载
 
-安装包发布在 **[Releases](../../releases)**，每个版本一份，按平台挑：
+安装包发布在 **[Releases](../../releases)**。**当前版本先只发 Windows**，
+macOS / Linux 在工作流里已经备好、待启用（见下）。
 
 | 平台 | 文件 | 说明 |
 | --- | --- | --- |
-| Windows | `Inkdown_<版本>_x64-setup.exe` | 推荐。按当前用户安装，不需要管理员权限 |
-| Windows | `Inkdown_<版本>_x64_en-US.msi` | 给需要 MSI 的场景（企业部署） |
-| macOS（Apple Silicon） | `Inkdown_<版本>_aarch64.dmg` | M1/M2/M3… |
-| macOS（Intel） | `Inkdown_<版本>_x64.dmg` | 老款 Mac |
-| Linux | `Inkdown_<版本>_amd64.AppImage` | 免安装，`chmod +x` 后直接跑 |
-| Linux | `inkdown_<版本>_amd64.deb` / `.rpm` | Debian/Ubuntu 与 Fedora/openSUSE |
+| ✅ Windows | `Inkdown_<版本>_x64-setup.exe` | 推荐。按当前用户安装，不需要管理员权限 |
+| ✅ Windows | `Inkdown_<版本>_x64_en-US.msi` | 给需要 MSI 的场景（企业部署） |
+| ⏳ macOS（Apple Silicon） | `Inkdown_<版本>_aarch64.dmg` | M1/M2/M3… 待启用 |
+| ⏳ macOS（Intel） | `Inkdown_<版本>_x64.dmg` | 老款 Mac，待启用 |
+| ⏳ Linux | `Inkdown_<版本>_amd64.AppImage` | 免安装，`chmod +x` 后直接跑，待启用 |
+| ⏳ Linux | `inkdown_<版本>_amd64.deb` / `.rpm` | Debian/Ubuntu 与 Fedora/openSUSE，待启用 |
 
-> 三平台安装包由 [GitHub Actions](.github/workflows/release.yml) **在各自的原生机器上**构建，
-> 不是在一台机器上交叉编译 —— Tauri 不支持交叉编译，macOS/Linux 的包必须在对应系统上打。
+> 安装包由 [GitHub Actions](.github/workflows/release.yml) **在各自的原生机器上**构建，
+> 不是在一台机器上交叉编译 —— Tauri 不支持交叉编译。
+> macOS / Linux 的构建条目在 `release.yml` 的矩阵里以注释形式保留，解开注释即可一起出。
 
-> ⚠️ **全部未签名**：
-> - Windows 首次运行会触发 SmartScreen，点「更多信息 → 仍要运行」；
-> - macOS 首次打开若提示"已损坏"或"无法验证开发者"，用
->   `xattr -dr com.apple.quarantine /Applications/Inkdown.app` 放行，或右键 →「打开」；
-> - Linux 的 AppImage 需要 `libwebkit2gtk-4.1`（Ubuntu 22.04+ 自带；较旧的发行版请用 deb/rpm 让包管理器处理依赖）。
+> ⚠️ **全部未签名**（没有买代码签名证书）：
+> - **Windows**：双击安装包会弹蓝色窗口「Windows 已保护你的电脑」——
+>   点「**更多信息**」→「**仍要运行**」。这不是病毒警告，是系统无法确认发布者身份。
+>   校验文件完整性可以比对 Release 里的 `SHA256SUMS.txt`。
+> - **macOS**：首次打开若提示"已损坏"或"无法验证开发者"，右键 →「打开」，或
+>   `xattr -dr com.apple.quarantine /Applications/Inkdown.app`。
+> - **Linux**：AppImage 需要 `libwebkit2gtk-4.1`（Ubuntu 22.04+ 自带；较旧的发行版用 deb/rpm 让包管理器处理依赖）。
 
 > ⚠️ **从旧名字升级**：这个项目以前叫 MDDeveloper。装过旧版的话请先卸载，
 > 再装 Inkdown —— 两者的安装目录不同，不卸载会在系统里留下两条记录。
