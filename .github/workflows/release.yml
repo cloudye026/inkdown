@@ -159,14 +159,20 @@ jobs:
       - name: 下载全部安装包
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
-          # 合并到同一层目录，Release 里就是一组平铺的文件
+          path: raw
+          # 把多个 artifact 合并到同一棵树里
           merge-multiple: true
 
-      - name: 看看收到了什么
+      # upload-artifact 会**保留相对路径**：几个 glob 分别命中 nsis/ 与 msi/ 时，
+      # 它取公共根目录，artifact 内部就是 `nsis/xxx.exe`、`msi/xxx.msi`。
+      # 下载下来因此是嵌套目录，直接 `sha256sum *` 会撞上 "Is a directory" 而失败
+      # （第一次跑发布就是死在这一步）。这里先摊平，后面的校验和与上传都只面对平铺文件。
+      - name: 摊平目录
         run: |
-          echo "共 $(find artifacts -type f | wc -l) 个文件："
-          find artifacts -type f -printf '%10s  %p\n' | sort -k2
+          mkdir -p artifacts
+          find raw -type f -exec cp -v {} artifacts/ \;
+          echo "---- artifacts ----"
+          find artifacts -maxdepth 1 -type f -printf '%10s  %f\n' | sort -k2
 
       # 发布说明取自 CHANGELOG 对应版本那一段，而不是让 GitHub 堆一串 commit 标题
       - name: 生成发布说明
@@ -180,9 +186,11 @@ jobs:
       - name: 生成校验和
         run: |
           cd artifacts
-          # 先写到临时文件再移回来：直接 `sha256sum * > SHA256SUMS.txt`
-          # 会让 * 把刚创建的空文件也囊括进去（经典踩坑）
-          sha256sum * > /tmp/sums.txt
+          # 只取本层普通文件（排除刚生成的校验和自身），且不依赖 glob 展开：
+          # 目录、隐藏文件都不会让它报错。
+          find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -printf '%f\n' \
+            | LC_ALL=C sort \
+            | while IFS= read -r f; do sha256sum "$f"; done > /tmp/sums.txt
           mv /tmp/sums.txt SHA256SUMS.txt
           cat SHA256SUMS.txt
 
